@@ -1,0 +1,110 @@
+# 1. Create a new user
+curl -X POST http://localhost:5004/users \
+-H "Content-Type: application/json" \
+-d '{
+    "userId": "testuser001",
+    "username": "Test User",
+    "stockbroker": "Zerodha"
+}'
+
+# 2. Get all users to see the new user in the list
+curl -X GET http://localhost:5004/users
+
+# 3. Get the specific user that was just created
+curl -X GET http://localhost:5004/users/testuser001
+
+# 4. Update the user's information (e.g., change the username)
+curl -X PUT http://localhost:5004/users/testuser001 \
+-H "Content-Type: application/json" \
+-d '{
+    "username": "Test User Updated"
+}'
+
+# 5. Delete the user
+curl -X DELETE http://localhost:5004/users/testuser001
+
+
+# 1. Create a new alert (assumes 'user 1' exists from seeding)
+curl -X POST http://localhost:5004/alerts \
+-H "Content-Type: application/json" \
+-d '{
+    "Date": "2024-05-21",
+    "userId": "user 1",
+    "Symbol": "CURLTEST",
+    "Order No.": "98765",
+    "Order Status": "Filled",
+    "Quantity": 50,
+    "Buy Price": 250.0,
+    "Last Trade Price": 255.0,
+    "Profit/Loss": 250.0,
+    "Profit/Loss %": 2.0,
+    "OCO Order No.": "98766",
+    "OCO Status": "Active",
+    "Overall Status": "Open"
+}'
+
+# 2. Get all alerts
+curl -X GET http://localhost:5004/alerts
+
+# 3. Get a specific alert by its ID (we'll use ID 1, which should exist from seeding)
+curl -X GET http://localhost:5004/alerts/1
+
+# 4. Update an alert's status (using ID 1)
+curl -X PUT http://localhost:5004/alerts/1 \
+-H "Content-Type: application/json" \
+-d '{
+    "Overall Status": "Closed",
+    "Last Trade Price": 260.0
+}'
+
+# 5. Delete an alert (using ID 1)
+curl -X DELETE http://localhost:5004/alerts/1
+
+
+# 1. Get the current refresh interval
+curl -X GET http://localhost:5004/config/refresh-interval
+
+# 2. Update the refresh interval (assumes the seeded entry has id=1)
+curl -X PUT http://localhost:5004/config/refresh-intervals/1 \
+-H "Content-Type: application/json" \
+-d '{
+    "interval_seconds": 150
+}'
+
+# 3. Create a new refresh interval (Note: your model has a unique constraint on this)
+# This will likely fail if an entry already exists, which is expected behavior.
+curl -X POST http://localhost:5004/config/refresh-intervals \
+-H "Content-Type: application/json" \
+-d '{
+    "interval_seconds": 500
+}'
+
+
+# 1. Create a new signal
+curl -X POST http://localhost:5004/signals \
+-H "Content-Type: application/json" \
+-d '{
+    "adate": "2024-05-22",
+    "asymbol": "RELIANCE",
+    "astrategy": "Breakout",
+    "aprice": 2850.50,
+    "acounter": 1,
+    "atime": "09:30:00"
+}'
+
+# 2. Get all signals
+curl -X GET http://localhost:5004/signals
+
+# 3. Get the signal you just created (assuming its ID is 1)
+curl -X GET http://localhost:5004/signals/1
+
+# 4. Update the signal's price and counter
+curl -X PUT http://localhost:5004/signals/1 \
+-H "Content-Type: application/json" \
+-d '{
+    "aprice": 2855.00,
+    "acounter": 2
+}'
+
+# 5. Delete the signal
+curl -X DELETE http://localhost:5004/signals/1

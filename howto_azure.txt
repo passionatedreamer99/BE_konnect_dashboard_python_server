@@ -1,0 +1,70 @@
+$rg = "konnectgroup"
+az group create --name $rg --location eastus
+
+$ACR_NAME = "konnectacr"
+az acr create --resource-group $rg --name $ACR_NAME --sku Basic --admin-enabled true
+
+$ACR_LOGIN_SERVER = az acr show --name $ACR_NAME --query "loginServer" -o tsv
+$ACR_USER = az acr credential show --name $ACR_NAME --query "username" -o tsv
+$ACR_PASS = az acr credential show --name $ACR_NAME --query "passwords[0].value" -o tsv
+
+docker build -t myapp:local .
+
+docker tag myapp:local "${ACR_LOGIN_SERVER}/myapp:v1"
+
+az acr login --name $ACR_NAME
+docker push "${ACR_LOGIN_SERVER}/myapp:v1"
+
+$DNS_LABEL = "konnectacr$(Get-Random)"
+
+az container create `
+  --resource-group $rg `
+  --name myapp-container `
+  --image "${ACR_LOGIN_SERVER}/myapp:v1" `
+  --cpu 1 --memory 1.5 `
+  --ports 5004 `
+  --ip-address public `
+  --dns-name-label $DNS_LABEL `
+  --os-type Linux `
+  --registry-login-server $ACR_LOGIN_SERVER `
+  --registry-username $ACR_USER `
+  --registry-password $ACR_PASS
+
+
+  STEP 8 — Get Public URL
+    az container show `
+  --resource-group $rg `
+  --name myapp-container `
+  --query "{FQDN:ipAddress.fqdn,State:instanceView.state}" `
+  -o table
+
+
+http://konnectacr1979805574.eastus.azurecontainer.io:5004/health
+
+View Logs (optional)
+az container logs --resource-group $rg --name myapp-container
+
+STEP 10 — Update Image Later
+
+To update your app:
+
+docker build -t myapp:local .
+docker tag myapp:local "${ACR_LOGIN_SERVER}/myapp:v2"
+docker push "${ACR_LOGIN_SERVER}/myapp:v2"
+az container delete --resource-group $rg --name myapp-container --yes
+az container create `
+  --resource-group $rg `
+  --name myapp-container `
+  --image "${ACR_LOGIN_SERVER}/myapp:v2" `
+  --cpu 1 --memory 1.5 `
+  --ports 5004 `
+  --ip-address public `
+  --dns-name-label $DNS_LABEL `
+  --registry-login-server $ACR_LOGIN_SERVER `
+  --registry-username $ACR_USER `
+  --registry-password $ACR_PASS
+
+🧹 STEP 11 — Cleanup (to save free credits)
+az container delete --resource-group $rg --name myapp-container --yes
+az acr delete --name $ACR_NAME --resource-group $rg --yes
+az group delete --name $rg --yes --no-wait

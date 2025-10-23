@@ -1,0 +1,98 @@
+# Konnect API Project
+
+Overview
+- konnect_service: http://localhost:5004
+
+## Running Options
+
+### 1) Local Development (Windows PowerShell)
+- Create and activate venv, install deps:
+  python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r requirements.txt
+
+- Start the service:
+  python konnect_service.py
+
+### 2) Docker Compose
+- Start the service:
+  docker-compose up -d
+
+- Stop the service:
+  docker-compose down
+
+### 3) Docker (Manual)
+- Build and run using the provided scripts:
+  # Windows
+  docker-run.bat
+  
+  # Linux/Mac
+  ./docker-run.sh
+
+- Or manually:
+  docker build -t konnect-service .
+  docker run -d --name konnect-container -p 5004:5004 konnect-service
+
+2) API Tests
+# Change to your project folder if needed
+Set-Location 'C:\ArunDevelopmentSetUp\Konnect\KonnectApi'
+
+# KONNECT SERVICE API TESTS
+# -------------------------
+
+# GET all users
+"Getting all users from Konnect service..."
+$userIds = Invoke-RestMethod -Method Get -Uri 'http://localhost:5004/users'
+"Received $($userIds.Count) user IDs. First ID: $($userIds[0])"
+
+# GET refresh interval
+"Getting refresh interval from Konnect service..."
+Invoke-RestMethod -Method Get -Uri 'http://localhost:5004/config/refresh-interval'
+
+# GET stock data
+"Getting stock data from Konnect service..."
+Invoke-RestMethod -Method Get -Uri 'http://localhost:5004/stocks'
+
+# Health check for all services
+Invoke-RestMethod -Method Get -Uri 'http://localhost:5004/health'
+Invoke-RestMethod -Method Get -Uri 'http://localhost:5005/health'
+
+# --- Alert CRUD Endpoints ---
+
+# 1. Create a New Alert (POST)
+$headers = @{"Content-Type"="application/json"}
+$body = @{
+    "Date" = "2024-05-20";
+    "User" = "Test User";
+    "Symbol" = "TEST";
+    "Order No." = "12345";
+    "Order Status" = "Filled";
+    "Quantity" = 100;
+    "Buy Price" = 150.0;
+    "Last Trade Price" = 155.0;
+    "Profit/Loss" = 500.0;
+    "Profit/Loss %" = 3.33;
+    "OCO Order No." = "67890";
+    "OCO Status" = "Active";
+    "Overall Status" = "Open"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Post -Uri 'http://localhost:5004/alerts' -Headers $headers -Body $body
+
+# 2. Get All Alerts (GET)
+Invoke-RestMethod -Method Get -Uri 'http://localhost:5004/alerts'
+
+# 3. Get a Specific Alert by ID (GET)
+Invoke-RestMethod -Method Get -Uri 'http://localhost:5004/alerts/1'
+
+# 4. Update an Alert (PUT)
+$updateBody = @{
+    "OrderStatus" = "Closed";
+    "Last Trade Price" = 160.0;
+    "Profit/Loss" = 1000.0;
+    "Profit/Loss %" = 6.66;
+    "Overall Status" = "Closed"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Put -Uri 'http://localhost:5004/alerts/1' -Headers $headers -Body $updateBody
+
+# 5. Delete an Alert (DELETE)
+Invoke-RestMethod -Method Delete -Uri 'http://localhost:5004/alerts/1'

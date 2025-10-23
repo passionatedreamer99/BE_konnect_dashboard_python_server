@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  konnect:
+    build: .
+    container_name: konnect-service
+    environment:
+      - PORT=5004
+    ports:
+      - "5004:5004"
+    command: python konnect_service.py
+    volumes:
+      - ./konnect_db.sqlite:/app/konnect_db.sqlite
