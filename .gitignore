@@ -1,9 +1,4 @@
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-env/
-venv/
 .env
-.DS_Store
 *.sqlite3
