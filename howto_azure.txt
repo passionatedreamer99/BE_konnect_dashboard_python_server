@@ -136,3 +136,15 @@ git commit -m "Setup CI/CD workflow"
 git push origin main
 
 test changes to test CI/CD workflow 
+
+az login --service-principal \
+  -u "08edb49d-2eeb-4267-a1e2-cfe9e8b21e86" \
+  -p "--G8Q~ZQRktzcITt_Mn1KICzXsvDOhuREqypScmO" \
+  --tenant "0ad045ab-c304-45f8-be03-110833f87d56"
+
+  {
+  "appId": "08edb49d-2eeb-4267-a1e2-cfe9e8b21e86",
+  "displayName": "github-dashboard-server-deploy",
+  "password": "--G8Q~ZQRktzcITt_Mn1KICzXsvDOhuREqypScmO",
+  "tenant": "0ad045ab-c304-45f8-be03-110833f87d56"
+}
