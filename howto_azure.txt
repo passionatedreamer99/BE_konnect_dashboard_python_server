@@ -25,12 +25,25 @@ az ad sp create-for-rbac `
 run below command for <YOUR_SUBSCRIPTION_ID> = 9c065682-e3b1-4b97-a38a-294e7ea58709
 az account show --query id --output tsv
 
-Copy the JSON output, we’ll use it in GitHub Secrets.
+The output of this command will be a JSON object. You need to copy this entire JSON object, including the `password` field, to create the `AZURE_CREDENTIALS` secret. The JSON object should look like this:
+
 {
-  "appId": "08edb49d-2eeb-4267-a1e2-cfe9e8b21e86",
+  "appId": "YOUR_APP_ID",
   "displayName": "github-dashboard-server-deploy",
-  "tenant": "0ad045ab-c304-45f8-be03-110833f87d56"
+  "password": "YOUR_GENERATED_PASSWORD",
+  "tenant": "YOUR_TENANT_ID"
 }
+
+When you create the `AZURE_CREDENTIALS` secret in GitHub, you need to format it like this, mapping the values from the previous step:
+
+{
+    "clientId": "YOUR_APP_ID",
+    "clientSecret": "YOUR_GENERATED_PASSWORD",
+    "subscriptionId": "YOUR_SUBSCRIPTION_ID",
+    "tenantId": "YOUR_TENANT_ID"
+}
+
+You can get YOUR_SUBSCRIPTION_ID by running `az account show --query id --output tsv`.
 
 
 Step 4 — Add GitHub Secrets

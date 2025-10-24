@@ -38,4 +38,4 @@ jobs:
         dns-name-label: myapp-${{ github.run_number }}
         location: eastus
         os-type: Linux
-        ports: 2000
+        ports: 5004
