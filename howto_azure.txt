@@ -1,70 +1,140 @@
-$rg = "konnectgroup"
-az group create --name $rg --location eastus
+Create Azure Container Registry (ACR)
 
-$ACR_NAME = "konnectacr"
-az acr create --resource-group $rg --name $ACR_NAME --sku Basic --admin-enabled true
+Log in to Azure CLI:
 
-$ACR_LOGIN_SERVER = az acr show --name $ACR_NAME --query "loginServer" -o tsv
-$ACR_USER = az acr credential show --name $ACR_NAME --query "username" -o tsv
-$ACR_PASS = az acr credential show --name $ACR_NAME --query "passwords[0].value" -o tsv
-
-docker build -t myapp:local .
-
-docker tag myapp:local "${ACR_LOGIN_SERVER}/myapp:v1"
-
-az acr login --name $ACR_NAME
-docker push "${ACR_LOGIN_SERVER}/myapp:v1"
-
-$DNS_LABEL = "konnectacr$(Get-Random)"
-
-az container create `
-  --resource-group $rg `
-  --name myapp-container `
-  --image "${ACR_LOGIN_SERVER}/myapp:v1" `
-  --cpu 1 --memory 1.5 `
-  --ports 5004 `
-  --ip-address public `
-  --dns-name-label $DNS_LABEL `
-  --os-type Linux `
-  --registry-login-server $ACR_LOGIN_SERVER `
-  --registry-username $ACR_USER `
-  --registry-password $ACR_PASS
+az login
 
 
-  STEP 8 — Get Public URL
-    az container show `
-  --resource-group $rg `
-  --name myapp-container `
-  --query "{FQDN:ipAddress.fqdn,State:instanceView.state}" `
-  -o table
+Create a resource group:
+
+az group create --name konnectdashboardresourcegroup --location eastus
 
 
-http://konnectacr1979805574.eastus.azurecontainer.io:5004/health
+Create a container registry:
 
-View Logs (optional)
-az container logs --resource-group $rg --name myapp-container
+az acr create --resource-group konnectdashboardresourcegroup --name konnectdashboardacr --sku Basic
 
-STEP 10 — Update Image Later
 
-To update your app:
+Step 3 — Create a Service Principal for GitHub Actions
+az ad sp create-for-rbac `
+  --name "github-dashboard-server-deploy" `
+  --role contributor `
+  --scopes /subscriptions/9c065682-e3b1-4b97-a38a-294e7ea58709/resourceGroups/konnectdashboardresourcegroup
 
-docker build -t myapp:local .
-docker tag myapp:local "${ACR_LOGIN_SERVER}/myapp:v2"
-docker push "${ACR_LOGIN_SERVER}/myapp:v2"
-az container delete --resource-group $rg --name myapp-container --yes
-az container create `
-  --resource-group $rg `
-  --name myapp-container `
-  --image "${ACR_LOGIN_SERVER}/myapp:v2" `
-  --cpu 1 --memory 1.5 `
-  --ports 5004 `
-  --ip-address public `
-  --dns-name-label $DNS_LABEL `
-  --registry-login-server $ACR_LOGIN_SERVER `
-  --registry-username $ACR_USER `
-  --registry-password $ACR_PASS
 
-🧹 STEP 11 — Cleanup (to save free credits)
-az container delete --resource-group $rg --name myapp-container --yes
-az acr delete --name $ACR_NAME --resource-group $rg --yes
-az group delete --name $rg --yes --no-wait
+run below command for <YOUR_SUBSCRIPTION_ID> = 9c065682-e3b1-4b97-a38a-294e7ea58709
+az account show --query id --output tsv
+
+Copy the JSON output, we’ll use it in GitHub Secrets.
+{
+  "appId": "08edb49d-2eeb-4267-a1e2-cfe9e8b21e86",
+  "displayName": "github-dashboard-server-deploy",
+  "password": "1GW8Q~Qw-wT5B42ERq_ALxNv-p~yepuUqWZxYbt6",
+  "tenant": "0ad045ab-c304-45f8-be03-110833f87d56"
+}
+
+
+Step 4 — Add GitHub Secrets
+
+Go to your GitHub repo → Settings → Secrets and variables → Actions → New repository secret
+
+Add these secrets:
+
+Name	Value
+AZURE_CREDENTIALS	JSON output from service principal
+REGISTRY_NAME	konnectdashboardacr
+RESOURCE_GROUP	konnectdashboardresourcegroup
+
+Step 4a - Verification
+
+If you are unable to see the created resources in the Azure portal, please run the following commands to verify that the resources were created successfully.
+
+# Verify your subscription ID
+az account show --query id --output tsv
+
+# Verify your tenant ID
+az account show --query tenantId --output tsv
+
+# Verify resource group creation
+az group list --output table
+
+# Verify ACR creation
+az acr list --output table
+
+If the resources are listed in the output of these commands, but are not visible in the Azure portal, it is likely a caching issue with the portal. You can try the following to resolve the issue:
+
+- Hard refresh the Azure portal (Ctrl + F5 or Cmd + Shift + R)
+- Clear your browser's cache and cookies
+- Try a different browser or incognito mode
+- Use the search bar in the Azure portal to search for the resources directly
+
+
+Step 5 — Dockerfile for your Python app
+
+Create a Dockerfile in your repo root:
+
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 5000
+CMD ["python", "app.py"]
+
+
+Step 6 — Create GitHub Actions Workflow
+
+Create .github/workflows/deploy.yml:
+
+name: Build and Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Build and push Docker image to ACR
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.REGISTRY_NAME }}.azurecr.io
+        username: ${{ secrets.REGISTRY_NAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    - run: |
+        docker build -t ${{ secrets.REGISTRY_NAME }}.azurecr.io/myapp:latest .
+        docker push ${{ secrets.REGISTRY_NAME }}.azurecr.io/myapp:latest
+
+    - name: Deploy to Azure Container Instance
+      uses: azure/aci-deploy@v1
+      with:
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        name: myapp-container
+        image: ${{ secrets.REGISTRY_NAME }}.azurecr.io/myapp:latest
+        dns-name-label: myapp-${{ github.run_number }}
+        location: eastus
+        os-type: Linux
+        ports: 5000
+
+Step 7 — Test CI/CD
+
+Push a commit to main:
+
+git add .
+git commit -m "Setup CI/CD workflow"
+git push origin main
+
+
+PAT = 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

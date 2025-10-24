@@ -17,3 +17,4 @@ ENV FLASK_ENV=development
 EXPOSE 5004
 
 CMD ["python", "konnect_service.py"]
+

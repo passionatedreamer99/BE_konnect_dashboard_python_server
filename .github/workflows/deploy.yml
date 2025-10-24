@@ -31,8 +31,15 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}/python-app:latest
 
+      - name: Checkout private action repository
+        uses: actions/checkout@v3
+        with:
+          repository: passionatedreamer99/BE_konnect_dashboard_python_server
+          token: ${{ secrets.ACTION_PAT }}
+          path: './BE_konnect_dashboard_python_server'
+
       - name: Deploy to Azure server App
-        uses: azure/konnectapi-server-deploy@v2
+        uses: ./BE_konnect_dashboard_python_server
         with:
           app-name: "konnectapi-server"
           images: "${{ secrets.AZURE_CONTAINER_REGISTRY }}/python-app:latest"
