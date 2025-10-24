@@ -29,7 +29,6 @@ Copy the JSON output, we’ll use it in GitHub Secrets.
 {
   "appId": "08edb49d-2eeb-4267-a1e2-cfe9e8b21e86",
   "displayName": "github-dashboard-server-deploy",
-  
   "tenant": "0ad045ab-c304-45f8-be03-110833f87d56"
 }
 
