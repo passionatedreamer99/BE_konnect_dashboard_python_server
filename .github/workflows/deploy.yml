@@ -1,4 +1,4 @@
-name: Deploy Python App to Azure
+name: Build and Deploy to Azure
 
 on:
   push:
@@ -10,36 +10,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Log in to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Build and push Docker image
-        uses: azure/docker-login@v1
-        with:
-          login-server: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
-          username: ${{ secrets.AZURE_REGISTRY_USERNAME }}
-          password: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
+    - name: Build and push Docker image to ACR
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.REGISTRY_NAME }}.azurecr.io
+        username: ${{ secrets.REGISTRY_NAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
 
-      - name: Build Docker image
-        run: docker build . -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}/python-app:latest
+    - run: |
+        docker build -t ${{ secrets.REGISTRY_NAME }}.azurecr.io/myapp:latest .
+        docker push ${{ secrets.REGISTRY_NAME }}.azurecr.io/myapp:latest
 
-      - name: Push Docker image
-        run: docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}/python-app:latest
-
-      - name: Checkout private action repository
-        uses: actions/checkout@v3
-        with:
-          repository: passionatedreamer99/BE_konnect_dashboard_python_server
-          token: ${{ secrets.ACTION_PAT }}
-          path: './BE_konnect_dashboard_python_server'
-
-      - name: Deploy to Azure server App
-        uses: ./BE_konnect_dashboard_python_server
-        with:
-          app-name: "konnectapi-server"
-          images: "${{ secrets.AZURE_CONTAINER_REGISTRY }}/python-app:latest"
+    - name: Deploy to Azure Container Instance
+      uses: azure/aci-deploy@v1
+      with:
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        name: myapp-container
+        image: ${{ secrets.REGISTRY_NAME }}.azurecr.io/myapp:latest
+        dns-name-label: myapp-${{ github.run_number }}
+        location: eastus
+        os-type: Linux
+        ports: 5000
