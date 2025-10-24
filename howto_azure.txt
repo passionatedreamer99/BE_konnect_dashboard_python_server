@@ -142,4 +142,6 @@ az login --service-principal \
   -p "--G8Q~ZQRktzcITt_Mn1KICzXsvDOhuREqypScmO" \
   --tenant "0ad045ab-c304-45f8-be03-110833f87d56"
 
+
+
   
