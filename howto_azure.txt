@@ -143,5 +143,3 @@ az login --service-principal \
   --tenant "0ad045ab-c304-45f8-be03-110833f87d56"
 
 
-
-  
